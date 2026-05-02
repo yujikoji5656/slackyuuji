@@ -5,17 +5,38 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Sidebar, SidebarContent } from '@/components/Sidebar'
 import { MessageList } from '@/components/MessageList'
 import { MessageInput } from '@/components/MessageInput'
+import { channels } from '@/data/messages'
+import { dmUsers } from '@/data/dms'
+import type { SelectedItem } from '@/types'
+
+function getHeaderLabel(selectedItem: SelectedItem): string {
+  if (selectedItem.type === 'channel') {
+    const channel = channels.find((ch) => ch.id === selectedItem.id)
+    return `# ${channel?.name ?? 'unknown'}`
+  }
+  const user = dmUsers.find((u) => u.id === selectedItem.id)
+  return `@ ${user?.name ?? 'unknown'}`
+}
 
 function App() {
   const [isOpen, setIsOpen] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<SelectedItem>({
+    type: 'channel',
+    id: channels[0].id,
+  })
+
+  const handleSelect = (item: SelectedItem) => {
+    setSelectedItem(item)
+    setIsOpen(false)
+  }
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar selectedItem={selectedItem} onSelect={handleSelect} />
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent side="left" className="w-[260px] bg-[#611f69] text-white p-0">
-          <SidebarContent />
+          <SidebarContent selectedItem={selectedItem} onSelect={handleSelect} />
         </SheetContent>
       </Sheet>
 
@@ -29,10 +50,10 @@ function App() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h2 className="text-xl font-bold"># general</h2>
+          <h2 className="text-xl font-bold">{getHeaderLabel(selectedItem)}</h2>
         </header>
 
-        <MessageList />
+        <MessageList selectedItem={selectedItem} />
         <MessageInput />
       </main>
     </div>

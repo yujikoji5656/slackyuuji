@@ -1,4 +1,4 @@
-import type { Channel, User, Message } from '@/types'
+import type { Channel, Message } from '@/types'
 
 export const channels: readonly Channel[] = [
   { id: 'ch-1', name: 'general', type: 'channel' },
@@ -8,27 +8,53 @@ export const channels: readonly Channel[] = [
   { id: 'ch-5', name: 'announcements', type: 'channel' },
 ] as const
 
-export const users: readonly User[] = [
-  { id: 'u-1', name: 'alice', displayName: 'Alice Johnson', avatarUrl: '', isOnline: true },
-  { id: 'u-2', name: 'bob', displayName: 'Bob Smith', avatarUrl: '', isOnline: true },
-  { id: 'u-3', name: 'charlie', displayName: 'Charlie Brown', avatarUrl: '', isOnline: false },
-  { id: 'u-4', name: 'diana', displayName: 'Diana Prince', avatarUrl: '', isOnline: true },
-  { id: 'u-5', name: 'eve', displayName: 'Eve Wilson', avatarUrl: '', isOnline: false },
-] as const
-
 export const messages: readonly Message[] = [
-  { id: 'm-1', channelId: 'ch-1', userId: 'u-1', text: 'おはようございます！今日もよろしくお願いします。', timestamp: '2026-05-02T09:00:00Z' },
-  { id: 'm-2', channelId: 'ch-1', userId: 'u-2', text: 'おはようございます！新しいデザイン案を共有しますね。', timestamp: '2026-05-02T09:05:00Z' },
-  { id: 'm-3', channelId: 'ch-1', userId: 'u-3', text: 'デプロイの準備ができました。レビューお願いします。', timestamp: '2026-05-02T09:10:00Z' },
-  { id: 'm-4', channelId: 'ch-1', userId: 'u-1', text: 'ありがとうございます！確認します。', timestamp: '2026-05-02T09:15:00Z' },
-  { id: 'm-5', channelId: 'ch-1', userId: 'u-4', text: 'ミーティングのアジェンダを更新しました。ご確認ください。', timestamp: '2026-05-02T09:20:00Z' },
-  { id: 'm-6', channelId: 'ch-1', userId: 'u-5', text: 'バグ修正のPRを出しました。#123 です。', timestamp: '2026-05-02T09:30:00Z' },
-  { id: 'm-7', channelId: 'ch-1', userId: 'u-2', text: 'レビューしました！LGTMです 👍', timestamp: '2026-05-02T09:35:00Z' },
-  { id: 'm-8', channelId: 'ch-1', userId: 'u-3', text: 'マージしてデプロイ完了しました。', timestamp: '2026-05-02T09:40:00Z' },
-  { id: 'm-9', channelId: 'ch-1', userId: 'u-4', text: 'お疲れさまです！ステージング環境で動作確認しますね。', timestamp: '2026-05-02T09:45:00Z' },
-  { id: 'm-10', channelId: 'ch-1', userId: 'u-1', text: '問題なさそうです。本番反映もお願いします！', timestamp: '2026-05-02T09:50:00Z' },
+  // #general
+  { id: 'm-1',  type: 'channel', parentId: 'ch-1', userName: 'Alice',   body: 'おはようございます！今日もよろしくお願いします。', createdAt: '2026-05-02T09:00:00Z' },
+  { id: 'm-2',  type: 'channel', parentId: 'ch-1', userName: 'Bob',     body: 'おはようございます！新しいデザイン案を共有しますね。', createdAt: '2026-05-02T09:05:00Z' },
+  { id: 'm-3',  type: 'channel', parentId: 'ch-1', userName: 'Charlie', body: 'デプロイの準備ができました。レビューお願いします。', createdAt: '2026-05-02T09:10:00Z' },
+  { id: 'm-4',  type: 'channel', parentId: 'ch-1', userName: 'Alice',   body: 'ありがとうございます！確認します。', createdAt: '2026-05-02T09:15:00Z' },
+  { id: 'm-5',  type: 'channel', parentId: 'ch-1', userName: 'Diana',   body: 'ミーティングのアジェンダを更新しました。', createdAt: '2026-05-02T09:20:00Z' },
+
+  // #random
+  { id: 'm-6',  type: 'channel', parentId: 'ch-2', userName: 'Bob',     body: '昨日のカレー屋さん最高だった！', createdAt: '2026-05-02T10:00:00Z' },
+  { id: 'm-7',  type: 'channel', parentId: 'ch-2', userName: 'Eve',     body: 'どこのお店ですか？気になります。', createdAt: '2026-05-02T10:05:00Z' },
+  { id: 'm-8',  type: 'channel', parentId: 'ch-2', userName: 'Bob',     body: '駅前のスパイスキッチンです。おすすめ！', createdAt: '2026-05-02T10:10:00Z' },
+  { id: 'm-9',  type: 'channel', parentId: 'ch-2', userName: 'Diana',   body: '今度ランチ行きましょう 🍛', createdAt: '2026-05-02T10:15:00Z' },
+
+  // #project-a
+  { id: 'm-10', type: 'channel', parentId: 'ch-3', userName: 'Charlie', body: 'Sprint 3のタスクを整理しました。', createdAt: '2026-05-02T11:00:00Z' },
+  { id: 'm-11', type: 'channel', parentId: 'ch-3', userName: 'Alice',   body: 'API設計のドキュメントをNotionに上げました。', createdAt: '2026-05-02T11:10:00Z' },
+  { id: 'm-12', type: 'channel', parentId: 'ch-3', userName: 'Diana',   body: 'フロントのコンポーネント設計も進めています。', createdAt: '2026-05-02T11:20:00Z' },
+
+  // #design
+  { id: 'm-13', type: 'channel', parentId: 'ch-4', userName: 'Eve',     body: 'Figmaのプロトタイプを更新しました。', createdAt: '2026-05-02T12:00:00Z' },
+  { id: 'm-14', type: 'channel', parentId: 'ch-4', userName: 'Bob',     body: 'カラーパレットの変更案を追加しました。', createdAt: '2026-05-02T12:15:00Z' },
+  { id: 'm-15', type: 'channel', parentId: 'ch-4', userName: 'Alice',   body: 'いい感じですね！フォントサイズだけ少し調整しましょう。', createdAt: '2026-05-02T12:20:00Z' },
+  { id: 'm-16', type: 'channel', parentId: 'ch-4', userName: 'Eve',     body: '了解です、反映します！', createdAt: '2026-05-02T12:25:00Z' },
+
+  // #announcements
+  { id: 'm-17', type: 'channel', parentId: 'ch-5', userName: 'Alice',   body: '来週月曜に全社ミーティングがあります。', createdAt: '2026-05-02T13:00:00Z' },
+  { id: 'm-18', type: 'channel', parentId: 'ch-5', userName: 'Alice',   body: '新メンバーの田中さんが来週からジョインします！', createdAt: '2026-05-02T13:10:00Z' },
+  { id: 'm-19', type: 'channel', parentId: 'ch-5', userName: 'Charlie', body: 'オフィス移転の日程が決まりました。詳細はメールで。', createdAt: '2026-05-02T13:20:00Z' },
+
+  // DM: 田中
+  { id: 'm-20', type: 'dm', parentId: 'dm-1', userName: '田中',   body: 'お疲れさまです！例の件、進捗どうですか？', createdAt: '2026-05-02T14:00:00Z' },
+  { id: 'm-21', type: 'dm', parentId: 'dm-1', userName: 'あなた', body: '今ちょうど作業中です。夕方には共有できそうです。', createdAt: '2026-05-02T14:05:00Z' },
+  { id: 'm-22', type: 'dm', parentId: 'dm-1', userName: '田中',   body: 'ありがとうございます！楽しみにしてます。', createdAt: '2026-05-02T14:10:00Z' },
+
+  // DM: 鈴木
+  { id: 'm-23', type: 'dm', parentId: 'dm-2', userName: '鈴木',   body: 'ミーティングの議事録送りました。確認お願いします。', createdAt: '2026-05-02T15:00:00Z' },
+  { id: 'm-24', type: 'dm', parentId: 'dm-2', userName: 'あなた', body: '確認しました。3ページ目の見積もりについて質問があります。', createdAt: '2026-05-02T15:10:00Z' },
+  { id: 'm-25', type: 'dm', parentId: 'dm-2', userName: '鈴木',   body: 'どの部分ですか？詳しく教えてください。', createdAt: '2026-05-02T15:15:00Z' },
+  { id: 'm-26', type: 'dm', parentId: 'dm-2', userName: 'あなた', body: 'インフラコストの見積もりが前回と違うようです。', createdAt: '2026-05-02T15:20:00Z' },
+
+  // DM: 佐藤
+  { id: 'm-27', type: 'dm', parentId: 'dm-3', userName: '佐藤',   body: '来週の勉強会の資料できましたか？', createdAt: '2026-05-02T16:00:00Z' },
+  { id: 'm-28', type: 'dm', parentId: 'dm-3', userName: 'あなた', body: 'はい！スライド30枚ほどできました。', createdAt: '2026-05-02T16:05:00Z' },
+  { id: 'm-29', type: 'dm', parentId: 'dm-3', userName: '佐藤',   body: 'すごい！事前に見せてもらえますか？', createdAt: '2026-05-02T16:10:00Z' },
 ] as const
 
-export function getUserById(userId: string): User | undefined {
-  return users.find((u) => u.id === userId)
+export function getMessagesByParent(type: 'channel' | 'dm', parentId: string): readonly Message[] {
+  return messages.filter((m) => m.type === type && m.parentId === parentId)
 }

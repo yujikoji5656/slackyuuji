@@ -14,8 +14,14 @@ export type User = {
 
 export type Message = {
   readonly id: string
-  readonly channelId: string
-  readonly userId: string
-  readonly text: string
-  readonly timestamp: string
+  readonly type: 'channel' | 'dm'
+  readonly parentId: string
+  readonly userName: string
+  readonly body: string
+  readonly createdAt: string
+}
+
+export type SelectedItem = {
+  readonly type: 'channel' | 'dm'
+  readonly id: string
 }
