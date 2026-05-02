@@ -19,6 +19,7 @@ export type Message = {
   readonly userName: string
   readonly body: string
   readonly createdAt: string
+  readonly reactions: { readonly [emoji: string]: number }
 }
 
 export type SelectedItem = {

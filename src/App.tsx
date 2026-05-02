@@ -5,9 +5,9 @@ import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Sidebar, SidebarContent } from '@/components/Sidebar'
 import { MessageList } from '@/components/MessageList'
 import { MessageInput } from '@/components/MessageInput'
-import { channels } from '@/data/messages'
+import { channels, messages as initialMessages } from '@/data/messages'
 import { dmUsers } from '@/data/dms'
-import type { SelectedItem } from '@/types'
+import type { Message, SelectedItem } from '@/types'
 
 function getHeaderLabel(selectedItem: SelectedItem): string {
   if (selectedItem.type === 'channel') {
@@ -24,10 +24,48 @@ function App() {
     type: 'channel',
     id: channels[0].id,
   })
+  const [messages, setMessages] = useState<readonly Message[]>(initialMessages)
+
+  const filteredMessages = messages.filter(
+    (m) => m.type === selectedItem.type && m.parentId === selectedItem.id,
+  )
 
   const handleSelect = (item: SelectedItem) => {
     setSelectedItem(item)
     setIsOpen(false)
+  }
+
+  const handleReact = (id: string, emoji: string) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === id
+          ? { ...m, reactions: { ...m.reactions, [emoji]: (m.reactions[emoji] ?? 0) + 1 } }
+          : m,
+      ),
+    )
+  }
+
+  const handleEdit = (id: string, newBody: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, body: newBody } : m)),
+    )
+  }
+
+  const handleDelete = (id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id))
+  }
+
+  const handleSend = (body: string) => {
+    const newMessage: Message = {
+      id: crypto.randomUUID(),
+      type: selectedItem.type,
+      parentId: selectedItem.id,
+      userName: '自分',
+      body,
+      reactions: {},
+      createdAt: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, newMessage])
   }
 
   return (
@@ -53,8 +91,8 @@ function App() {
           <h2 className="text-xl font-bold">{getHeaderLabel(selectedItem)}</h2>
         </header>
 
-        <MessageList selectedItem={selectedItem} />
-        <MessageInput />
+        <MessageList messages={filteredMessages} onEdit={handleEdit} onDelete={handleDelete} onReact={handleReact} />
+        <MessageInput onSend={handleSend} />
       </main>
     </div>
   )
