@@ -1,13 +1,13 @@
-import { channels } from '@/data/messages'
 import { dmUsers } from '@/data/dms'
-import type { SelectedItem } from '@/types'
+import type { Channel, SelectedItem } from '@/types'
 
 type SidebarContentProps = {
-  readonly selectedItem: SelectedItem
+  readonly channels: readonly Channel[]
+  readonly selectedItem: SelectedItem | null
   readonly onSelect: (item: SelectedItem) => void
 }
 
-export function SidebarContent({ selectedItem, onSelect }: SidebarContentProps) {
+export function SidebarContent({ channels, selectedItem, onSelect }: SidebarContentProps) {
   return (
     <>
       <div className="px-4 py-3 font-bold text-lg border-b border-white/20">
@@ -20,7 +20,7 @@ export function SidebarContent({ selectedItem, onSelect }: SidebarContentProps) 
 
       <nav className="flex flex-col gap-0.5 px-2">
         {channels.map((channel) => {
-          const isActive = selectedItem.type === 'channel' && selectedItem.id === channel.id
+          const isActive = selectedItem?.type === 'channel' && selectedItem.id === channel.id
           return (
             <div
               key={channel.id}
@@ -42,7 +42,7 @@ export function SidebarContent({ selectedItem, onSelect }: SidebarContentProps) 
 
       <nav className="flex flex-col gap-0.5 px-2">
         {dmUsers.map((user) => {
-          const isActive = selectedItem.type === 'dm' && selectedItem.id === user.id
+          const isActive = selectedItem?.type === 'dm' && selectedItem.id === user.id
           return (
             <div
               key={user.id}
@@ -61,10 +61,10 @@ export function SidebarContent({ selectedItem, onSelect }: SidebarContentProps) 
   )
 }
 
-export function Sidebar({ selectedItem, onSelect }: SidebarContentProps) {
+export function Sidebar({ channels, selectedItem, onSelect }: SidebarContentProps) {
   return (
     <aside className="hidden md:flex w-[260px] flex-shrink-0 bg-[#611f69] text-white flex-col">
-      <SidebarContent selectedItem={selectedItem} onSelect={onSelect} />
+      <SidebarContent channels={channels} selectedItem={selectedItem} onSelect={onSelect} />
     </aside>
   )
 }

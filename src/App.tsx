@@ -1,15 +1,19 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Sidebar, SidebarContent } from '@/components/Sidebar'
 import { MessageList } from '@/components/MessageList'
 import { MessageInput } from '@/components/MessageInput'
-import { channels, messages as initialMessages } from '@/data/messages'
+import { messages as dummyMessages } from '@/data/messages'
 import { dmUsers } from '@/data/dms'
-import type { Message, SelectedItem } from '@/types'
+import { supabase } from '@/lib/supabase'
+import type { Channel, Message, SelectedItem } from '@/types'
 
-function getHeaderLabel(selectedItem: SelectedItem): string {
+function getHeaderLabel(
+  selectedItem: SelectedItem,
+  channels: readonly Channel[],
+): string {
   if (selectedItem.type === 'channel') {
     const channel = channels.find((ch) => ch.id === selectedItem.id)
     return `# ${channel?.name ?? 'unknown'}`
@@ -20,15 +24,68 @@ function getHeaderLabel(selectedItem: SelectedItem): string {
 
 function App() {
   const [isOpen, setIsOpen] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<SelectedItem>({
-    type: 'channel',
-    id: channels[0].id,
-  })
-  const [messages, setMessages] = useState<readonly Message[]>(initialMessages)
+  const [channels, setChannels] = useState<readonly Channel[]>([])
+  const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null)
+  const [messages, setMessages] = useState<readonly Message[]>([])
 
-  const filteredMessages = messages.filter(
-    (m) => m.type === selectedItem.type && m.parentId === selectedItem.id,
-  )
+  useEffect(() => {
+    void (async () => {
+      const { data, error } = await supabase.from('channels').select('*')
+      if (error) {
+        console.error(error)
+        return
+      }
+      const list: Channel[] = (data ?? []).map((c) => ({
+        id: c.id as string,
+        name: c.name as string,
+        type: 'channel' as const,
+      }))
+      setChannels(list)
+      if (list.length > 0) {
+        setSelectedItem((prev) => prev ?? { type: 'channel', id: list[0].id })
+      }
+    })()
+  }, [])
+
+  const selectedChannelId =
+    selectedItem?.type === 'channel' ? selectedItem.id : null
+
+  const fetchChannelMessages = useCallback(async (channelId: string) => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('channel_id', channelId)
+      .order('created_at', { ascending: true })
+    if (error) {
+      console.error(error)
+      return
+    }
+    const list: Message[] = (data ?? []).map((m) => ({
+      id: m.id as string,
+      type: 'channel' as const,
+      parentId: m.channel_id as string,
+      userName: m.user_name as string,
+      body: m.content as string,
+      reactions: {},
+      createdAt: m.created_at as string,
+      imageUrl: (m.image_url as string | null) ?? undefined,
+    }))
+    setMessages(list)
+  }, [])
+
+  useEffect(() => {
+    if (!selectedItem) return
+    if (selectedItem.type !== 'channel') {
+      setMessages(
+        dummyMessages.filter(
+          (m) => m.type === 'dm' && m.parentId === selectedItem.id,
+        ),
+      )
+      return
+    }
+    if (!selectedChannelId) return
+    void fetchChannelMessages(selectedChannelId)
+  }, [selectedItem, selectedChannelId, fetchChannelMessages])
 
   const handleSelect = (item: SelectedItem) => {
     setSelectedItem(item)
@@ -55,26 +112,67 @@ function App() {
     setMessages((prev) => prev.filter((m) => m.id !== id))
   }
 
-  const handleSend = (body: string) => {
-    const newMessage: Message = {
-      id: crypto.randomUUID(),
-      type: selectedItem.type,
-      parentId: selectedItem.id,
-      userName: '自分',
-      body,
-      reactions: {},
-      createdAt: new Date().toISOString(),
+  const handleSend = async (body: string, file: File | null) => {
+    if (!selectedItem) return
+    if (selectedItem.type !== 'channel') {
+      const newMessage: Message = {
+        id: crypto.randomUUID(),
+        type: 'dm',
+        parentId: selectedItem.id,
+        userName: '自分',
+        body,
+        reactions: {},
+        createdAt: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, newMessage])
+      return
     }
-    setMessages((prev) => [...prev, newMessage])
+
+    let imageUrl: string | null = null
+    if (file) {
+      const ext = file.name.split('.').pop()
+      const filePath = `${Date.now()}_${crypto.randomUUID()}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('chat-images')
+        .upload(filePath, file, { contentType: file.type })
+      if (uploadError) {
+        console.error(uploadError)
+        return
+      }
+      const { data: urlData } = supabase.storage
+        .from('chat-images')
+        .getPublicUrl(filePath)
+      imageUrl = urlData.publicUrl
+    }
+
+    const { error } = await supabase.from('messages').insert({
+      content: body,
+      channel_id: selectedItem.id,
+      user_name: '自分',
+      image_url: imageUrl,
+    })
+    if (error) {
+      console.error(error)
+      return
+    }
+    await fetchChannelMessages(selectedItem.id)
   }
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar selectedItem={selectedItem} onSelect={handleSelect} />
+      <Sidebar
+        channels={channels}
+        selectedItem={selectedItem}
+        onSelect={handleSelect}
+      />
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetContent side="left" className="w-[260px] bg-[#611f69] text-white p-0">
-          <SidebarContent selectedItem={selectedItem} onSelect={handleSelect} />
+          <SidebarContent
+            channels={channels}
+            selectedItem={selectedItem}
+            onSelect={handleSelect}
+          />
         </SheetContent>
       </Sheet>
 
@@ -88,10 +186,12 @@ function App() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <h2 className="text-xl font-bold">{getHeaderLabel(selectedItem)}</h2>
+          <h2 className="text-xl font-bold">
+            {selectedItem ? getHeaderLabel(selectedItem, channels) : ''}
+          </h2>
         </header>
 
-        <MessageList messages={filteredMessages} onEdit={handleEdit} onDelete={handleDelete} onReact={handleReact} />
+        <MessageList messages={messages} onEdit={handleEdit} onDelete={handleDelete} onReact={handleReact} />
         <MessageInput onSend={handleSend} />
       </main>
     </div>

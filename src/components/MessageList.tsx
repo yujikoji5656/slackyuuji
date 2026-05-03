@@ -90,7 +90,18 @@ export function MessageList({ messages, onEdit, onDelete, onReact }: MessageList
                   </div>
                 </div>
               ) : (
-                <p className="text-sm mt-0.5 whitespace-pre-wrap">{msg.body}</p>
+                <>
+                  {msg.body && (
+                    <p className="text-sm mt-0.5 whitespace-pre-wrap">{msg.body}</p>
+                  )}
+                  {msg.imageUrl && (
+                    <img
+                      src={msg.imageUrl}
+                      alt=""
+                      className="max-w-xs rounded-lg mt-2"
+                    />
+                  )}
+                </>
               )}
 
               {reactionEntries.length > 0 && (
