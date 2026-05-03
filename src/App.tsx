@@ -50,6 +50,17 @@ function App() {
   const selectedChannelId =
     selectedItem?.type === 'channel' ? selectedItem.id : null
 
+  const mapDbMessage = useCallback((m: Record<string, unknown>): Message => ({
+    id: m.id as string,
+    type: 'channel' as const,
+    parentId: m.channel_id as string,
+    userName: m.user_name as string,
+    body: m.content as string,
+    reactions: {},
+    createdAt: m.created_at as string,
+    imageUrl: (m.image_url as string | null) ?? undefined,
+  }), [])
+
   const fetchChannelMessages = useCallback(async (channelId: string) => {
     const { data, error } = await supabase
       .from('messages')
@@ -60,18 +71,8 @@ function App() {
       console.error(error)
       return
     }
-    const list: Message[] = (data ?? []).map((m) => ({
-      id: m.id as string,
-      type: 'channel' as const,
-      parentId: m.channel_id as string,
-      userName: m.user_name as string,
-      body: m.content as string,
-      reactions: {},
-      createdAt: m.created_at as string,
-      imageUrl: (m.image_url as string | null) ?? undefined,
-    }))
-    setMessages(list)
-  }, [])
+    setMessages((data ?? []).map(mapDbMessage))
+  }, [mapDbMessage])
 
   useEffect(() => {
     if (!selectedItem) return
@@ -86,6 +87,28 @@ function App() {
     if (!selectedChannelId) return
     void fetchChannelMessages(selectedChannelId)
   }, [selectedItem, selectedChannelId, fetchChannelMessages])
+
+  useEffect(() => {
+    if (!selectedChannelId) return
+    const channel = supabase
+      .channel(`messages:${selectedChannelId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const row = payload.new as Record<string, unknown>
+          if (row.channel_id !== selectedChannelId) return
+          const msg = mapDbMessage(row)
+          setMessages((prev) =>
+            prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
+          )
+        },
+      )
+      .subscribe()
+    return () => {
+      void supabase.removeChannel(channel)
+    }
+  }, [selectedChannelId, mapDbMessage])
 
   const handleSelect = (item: SelectedItem) => {
     setSelectedItem(item)
@@ -155,7 +178,6 @@ function App() {
       console.error(error)
       return
     }
-    await fetchChannelMessages(selectedItem.id)
   }
 
   return (
