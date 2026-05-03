@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Menu } from 'lucide-react'
+import { Menu, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Sidebar, SidebarContent } from '@/components/Sidebar'
@@ -23,6 +25,7 @@ function getHeaderLabel(
 }
 
 function App() {
+  const navigate = useNavigate()
   const [isOpen, setIsOpen] = useState(false)
   const [channels, setChannels] = useState<readonly Channel[]>([])
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null)
@@ -113,6 +116,15 @@ function App() {
   const handleSelect = (item: SelectedItem) => {
     setSelectedItem(item)
     setIsOpen(false)
+  }
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    navigate('/login', { replace: true })
   }
 
   const handleReact = (id: string, emoji: string) => {
@@ -211,6 +223,15 @@ function App() {
           <h2 className="text-xl font-bold">
             {selectedItem ? getHeaderLabel(selectedItem, channels) : ''}
           </h2>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="ml-auto"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            ログアウト
+          </Button>
         </header>
 
         <MessageList messages={messages} onEdit={handleEdit} onDelete={handleDelete} onReact={handleReact} />
