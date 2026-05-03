@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 import { dmUsers } from '@/data/dms'
 import type { Channel, SelectedItem } from '@/types'
 
@@ -5,9 +6,21 @@ type SidebarContentProps = {
   readonly channels: readonly Channel[]
   readonly selectedItem: SelectedItem | null
   readonly onSelect: (item: SelectedItem) => void
+  readonly memberChannelIds: ReadonlySet<string>
+  readonly canManage: boolean
+  readonly onJoin: (channelId: string) => void | Promise<void>
+  readonly onLeave: (channelId: string) => void | Promise<void>
 }
 
-export function SidebarContent({ channels, selectedItem, onSelect }: SidebarContentProps) {
+export function SidebarContent({
+  channels,
+  selectedItem,
+  onSelect,
+  memberChannelIds,
+  canManage,
+  onJoin,
+  onLeave,
+}: SidebarContentProps) {
   return (
     <>
       <div className="px-4 py-3 font-bold text-lg border-b border-white/20">
@@ -21,6 +34,7 @@ export function SidebarContent({ channels, selectedItem, onSelect }: SidebarCont
       <nav className="flex flex-col gap-0.5 px-2">
         {channels.map((channel) => {
           const isActive = selectedItem?.type === 'channel' && selectedItem.id === channel.id
+          const joined = memberChannelIds.has(channel.id)
           return (
             <div
               key={channel.id}
@@ -30,7 +44,20 @@ export function SidebarContent({ channels, selectedItem, onSelect }: SidebarCont
               }`}
             >
               <span className={`mr-1.5 ${isActive ? 'text-white' : 'text-white/70'}`}>#</span>
-              {channel.name}
+              <span className="truncate">{channel.name}</span>
+              {canManage && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="ml-auto h-6 px-2 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void (joined ? onLeave(channel.id) : onJoin(channel.id))
+                  }}
+                >
+                  {joined ? '退出する' : '参加する'}
+                </Button>
+              )}
             </div>
           )
         })}
@@ -61,10 +88,10 @@ export function SidebarContent({ channels, selectedItem, onSelect }: SidebarCont
   )
 }
 
-export function Sidebar({ channels, selectedItem, onSelect }: SidebarContentProps) {
+export function Sidebar(props: SidebarContentProps) {
   return (
     <aside className="hidden md:flex w-[260px] flex-shrink-0 bg-[#611f69] text-white flex-col">
-      <SidebarContent channels={channels} selectedItem={selectedItem} onSelect={onSelect} />
+      <SidebarContent {...props} />
     </aside>
   )
 }

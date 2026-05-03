@@ -10,7 +10,18 @@ import { MessageInput } from '@/components/MessageInput'
 import { messages as dummyMessages } from '@/data/messages'
 import { dmUsers } from '@/data/dms'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { Channel, Message, SelectedItem } from '@/types'
+
+type DBMessageRow = {
+  readonly id: string
+  readonly channel_id: string
+  readonly user_id: string | null
+  readonly user_name: string
+  readonly content: string
+  readonly image_url: string | null
+  readonly created_at: string
+}
 
 function getHeaderLabel(
   selectedItem: SelectedItem,
@@ -26,42 +37,73 @@ function getHeaderLabel(
 
 function App() {
   const navigate = useNavigate()
+  const { session } = useAuth()
+  const userId = session?.user.id ?? null
   const [isOpen, setIsOpen] = useState(false)
   const [channels, setChannels] = useState<readonly Channel[]>([])
+  const [memberChannelIds, setMemberChannelIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  )
   const [selectedItem, setSelectedItem] = useState<SelectedItem | null>(null)
   const [messages, setMessages] = useState<readonly Message[]>([])
 
-  useEffect(() => {
-    void (async () => {
-      const { data, error } = await supabase.from('channels').select('*')
-      if (error) {
-        console.error(error)
-        return
-      }
-      const list: Channel[] = (data ?? []).map((c) => ({
-        id: c.id as string,
-        name: c.name as string,
-        type: 'channel' as const,
-      }))
-      setChannels(list)
-      if (list.length > 0) {
-        setSelectedItem((prev) => prev ?? { type: 'channel', id: list[0].id })
-      }
-    })()
+  const fetchChannels = useCallback(async () => {
+    const { data, error } = await supabase.from('channels').select('*')
+    if (error) {
+      console.error(error)
+      return
+    }
+    const list: Channel[] = (data ?? []).map((c) => ({
+      id: c.id as string,
+      name: c.name as string,
+      type: 'channel' as const,
+    }))
+    setChannels(list)
+    setSelectedItem((prev) => {
+      if (prev) return prev
+      return list.length > 0 ? { type: 'channel', id: list[0].id } : null
+    })
   }, [])
+
+  const fetchMembers = useCallback(async () => {
+    if (!userId) {
+      setMemberChannelIds(new Set())
+      return
+    }
+    const { data, error } = await supabase
+      .from('channel_members')
+      .select('channel_id')
+      .eq('user_id', userId)
+    if (error) {
+      console.error(error)
+      return
+    }
+    setMemberChannelIds(
+      new Set((data ?? []).map((r) => r.channel_id as string)),
+    )
+  }, [userId])
+
+  useEffect(() => {
+    void fetchChannels()
+  }, [fetchChannels])
+
+  useEffect(() => {
+    void fetchMembers()
+  }, [fetchMembers])
 
   const selectedChannelId =
     selectedItem?.type === 'channel' ? selectedItem.id : null
 
-  const mapDbMessage = useCallback((m: Record<string, unknown>): Message => ({
-    id: m.id as string,
+  const mapDbMessage = useCallback((m: DBMessageRow): Message => ({
+    id: m.id,
     type: 'channel' as const,
-    parentId: m.channel_id as string,
-    userName: m.user_name as string,
-    body: m.content as string,
+    parentId: m.channel_id,
+    userName: m.user_name,
+    body: m.content,
     reactions: {},
-    createdAt: m.created_at as string,
-    imageUrl: (m.image_url as string | null) ?? undefined,
+    createdAt: m.created_at,
+    imageUrl: m.image_url ?? undefined,
+    userId: m.user_id,
   }), [])
 
   const fetchChannelMessages = useCallback(async (channelId: string) => {
@@ -74,7 +116,7 @@ function App() {
       console.error(error)
       return
     }
-    setMessages((data ?? []).map(mapDbMessage))
+    setMessages((data as DBMessageRow[] ?? []).map(mapDbMessage))
   }, [mapDbMessage])
 
   useEffect(() => {
@@ -99,7 +141,7 @@ function App() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
-          const row = payload.new as Record<string, unknown>
+          const row = payload.new as DBMessageRow
           if (row.channel_id !== selectedChannelId) return
           const msg = mapDbMessage(row)
           setMessages((prev) =>
@@ -116,6 +158,41 @@ function App() {
   const handleSelect = (item: SelectedItem) => {
     setSelectedItem(item)
     setIsOpen(false)
+  }
+
+  const refreshAfterMembership = useCallback(async () => {
+    await fetchMembers()
+    await fetchChannels()
+    if (selectedChannelId) {
+      await fetchChannelMessages(selectedChannelId)
+    }
+  }, [fetchMembers, fetchChannels, fetchChannelMessages, selectedChannelId])
+
+  const handleJoin = async (channelId: string) => {
+    if (!userId) return
+    const { error } = await supabase
+      .from('channel_members')
+      .insert({ channel_id: channelId, user_id: userId })
+      .select()
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    await refreshAfterMembership()
+  }
+
+  const handleLeave = async (channelId: string) => {
+    if (!userId) return
+    const { error } = await supabase
+      .from('channel_members')
+      .delete()
+      .eq('channel_id', channelId)
+      .eq('user_id', userId)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    await refreshAfterMembership()
   }
 
   const handleLogout = async () => {
@@ -185,6 +262,7 @@ function App() {
       channel_id: selectedItem.id,
       user_name: '自分',
       image_url: imageUrl,
+      user_id: session?.user.id ?? null,
     })
     if (error) {
       console.error(error)
@@ -198,6 +276,10 @@ function App() {
         channels={channels}
         selectedItem={selectedItem}
         onSelect={handleSelect}
+        memberChannelIds={memberChannelIds}
+        canManage={!!userId}
+        onJoin={handleJoin}
+        onLeave={handleLeave}
       />
 
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -206,6 +288,10 @@ function App() {
             channels={channels}
             selectedItem={selectedItem}
             onSelect={handleSelect}
+            memberChannelIds={memberChannelIds}
+            canManage={!!userId}
+            onJoin={handleJoin}
+            onLeave={handleLeave}
           />
         </SheetContent>
       </Sheet>
