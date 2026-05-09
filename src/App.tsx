@@ -57,8 +57,8 @@ function App() {
     error: messagesError,
     fetchChannelMessages,
     handleReact,
-    handleEdit,
-    handleDelete,
+    updateMessageLocally,
+    removeMessageLocally,
     handleSend,
   } = useMessages(selectedItem, userId)
 
@@ -172,7 +172,7 @@ function App() {
             ))}
           </div>
         ) : (
-          <MessageList messages={messages} currentUserId={userId} onEdit={handleEdit} onDelete={handleDelete} onReact={handleReact} />
+          <MessageList messages={messages} currentUserId={userId} onEditLocal={updateMessageLocally} onDeleteLocal={removeMessageLocally} onReact={handleReact} />
         )}
         <MessageInput onSend={handleSend} />
       </main>

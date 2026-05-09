@@ -115,7 +115,7 @@ export function useMessages(
     )
   }, [])
 
-  const handleEdit = useCallback(
+  const updateMessageLocally = useCallback(
     (id: string, newBody: string) => {
       setMessages((prev) =>
         prev.map((m) => {
@@ -128,7 +128,7 @@ export function useMessages(
     [sessionUserId],
   )
 
-  const handleDelete = useCallback(
+  const removeMessageLocally = useCallback(
     (id: string) => {
       setMessages((prev) => {
         const target = prev.find((m) => m.id === id)
@@ -210,8 +210,8 @@ export function useMessages(
     error,
     fetchChannelMessages,
     handleReact,
-    handleEdit,
-    handleDelete,
+    updateMessageLocally,
+    removeMessageLocally,
     handleSend,
   } as const
 }

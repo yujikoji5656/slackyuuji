@@ -38,11 +38,9 @@ export function useChannelMembership(userId: string | null) {
         .select()
       if (error) {
         toast.error(error.message)
-        return
       }
-      await fetchMembers()
     },
-    [userId, fetchMembers],
+    [userId],
   )
 
   const handleLeave = useCallback(
@@ -55,11 +53,9 @@ export function useChannelMembership(userId: string | null) {
         .eq('user_id', userId)
       if (error) {
         toast.error(error.message)
-        return
       }
-      await fetchMembers()
     },
-    [userId, fetchMembers],
+    [userId],
   )
 
   return {
