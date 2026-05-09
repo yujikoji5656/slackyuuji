@@ -19,12 +19,13 @@ function getInitials(name: string): string {
 
 type MessageListProps = {
   readonly messages: readonly Message[]
+  readonly currentUserId: string | null
   readonly onEdit: (id: string, newBody: string) => void
   readonly onDelete: (id: string) => void
   readonly onReact: (id: string, emoji: string) => void
 }
 
-export function MessageList({ messages, onEdit, onDelete, onReact }: MessageListProps) {
+export function MessageList({ messages, currentUserId, onEdit, onDelete, onReact }: MessageListProps) {
   const endRef = useRef<HTMLDivElement>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editBody, setEditBody] = useState('')
@@ -55,6 +56,14 @@ export function MessageList({ messages, onEdit, onDelete, onReact }: MessageList
     if (window.confirm('削除しますか？')) {
       onDelete(id)
     }
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        <p>まだメッセージがありません</p>
+      </div>
+    )
   }
 
   return (
@@ -141,22 +150,26 @@ export function MessageList({ messages, onEdit, onDelete, onReact }: MessageList
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => handleEditStart(msg)}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                  onClick={() => handleDelete(msg.id)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                {currentUserId && msg.userId === currentUserId && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleEditStart(msg)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => handleDelete(msg.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>

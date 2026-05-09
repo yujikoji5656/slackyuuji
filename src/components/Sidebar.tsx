@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { dmUsers } from '@/data/dms'
 import type { Channel, SelectedItem } from '@/types'
 
@@ -10,6 +11,8 @@ type SidebarContentProps = {
   readonly canManage: boolean
   readonly onJoin: (channelId: string) => void | Promise<void>
   readonly onLeave: (channelId: string) => void | Promise<void>
+  readonly channelsLoading?: boolean
+  readonly channelsError?: string | null
 }
 
 export function SidebarContent({
@@ -20,6 +23,8 @@ export function SidebarContent({
   canManage,
   onJoin,
   onLeave,
+  channelsLoading = false,
+  channelsError = null,
 }: SidebarContentProps) {
   return (
     <>
@@ -32,6 +37,15 @@ export function SidebarContent({
       </div>
 
       <nav className="flex flex-col gap-0.5 px-2">
+        {channelsLoading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-full bg-white/10" />
+          ))
+        ) : channelsError ? (
+          <p className="px-3 text-xs text-red-300">{channelsError}</p>
+        ) : channels.length === 0 ? (
+          <p className="px-3 text-xs text-white/50">チャンネルがありません</p>
+        ) : null}
         {channels.map((channel) => {
           const isActive = selectedItem?.type === 'channel' && selectedItem.id === channel.id
           const joined = memberChannelIds.has(channel.id)
